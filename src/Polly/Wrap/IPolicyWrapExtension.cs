@@ -12,21 +12,12 @@ public static class IPolicyWrapExtension
     /// <returns>An <see cref="IEnumerable{IsPolicy}"/> of all the policies in the wrap.</returns>
     public static IEnumerable<IsPolicy> GetPolicies(this IPolicyWrap policyWrap)
     {
-        var childPolicies = new[] { policyWrap.Outer, policyWrap.Inner };
-        foreach (var childPolicy in childPolicies)
+        if (policyWrap is null)
         {
-            if (childPolicy is IPolicyWrap anotherWrap)
-            {
-                foreach (var policy in anotherWrap.GetPolicies())
-                {
-                    yield return policy;
-                }
-            }
-            else if (childPolicy != null)
-            {
-                yield return childPolicy;
-            }
+            throw new ArgumentNullException(nameof(policyWrap));
         }
+
+        return GetPoliciesIterator(policyWrap);
     }
 
     /// <summary>
@@ -47,7 +38,11 @@ public static class IPolicyWrapExtension
     /// <returns>An <see cref="IEnumerable{TPolicy}"/> of all the policies of the given type, matching the filter.</returns>
     public static IEnumerable<TPolicy> GetPolicies<TPolicy>(this IPolicyWrap policyWrap, Func<TPolicy, bool> filter)
     {
-        if (filter == null) throw new ArgumentNullException(nameof(filter));
+        if (filter == null)
+        {
+            throw new ArgumentNullException(nameof(filter));
+        }
+
         return policyWrap.GetPolicies().OfType<TPolicy>().Where(filter);
     }
 
@@ -71,7 +66,30 @@ public static class IPolicyWrapExtension
     /// <throws>InvalidOperationException, if more than one policy of the type is found in the wrap.</throws>
     public static TPolicy GetPolicy<TPolicy>(this IPolicyWrap policyWrap, Func<TPolicy, bool> filter)
     {
-        if (filter == null) throw new ArgumentNullException(nameof(filter));
+        if (filter == null)
+        {
+            throw new ArgumentNullException(nameof(filter));
+        }
+
         return policyWrap.GetPolicies().OfType<TPolicy>().SingleOrDefault(filter);
+    }
+
+    private static IEnumerable<IsPolicy> GetPoliciesIterator(IPolicyWrap policyWrap)
+    {
+        var childPolicies = new[] { policyWrap.Outer, policyWrap.Inner };
+        foreach (var childPolicy in childPolicies)
+        {
+            if (childPolicy is IPolicyWrap anotherWrap)
+            {
+                foreach (var policy in anotherWrap.GetPolicies())
+                {
+                    yield return policy;
+                }
+            }
+            else if (childPolicy != null)
+            {
+                yield return childPolicy;
+            }
+        }
     }
 }

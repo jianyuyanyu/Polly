@@ -1,5 +1,4 @@
 ﻿#nullable enable
-
 namespace Polly;
 
 public partial class Policy
@@ -48,7 +47,7 @@ public partial class Policy
 
     /// <summary>
     /// Builds a RateLimit <see cref="AsyncPolicy{TResult}"/> that will rate-limit executions to <paramref name="numberOfExecutions"/> per the timespan given,
-    /// with a maximum burst size of <paramref name="maxBurst"/>
+    /// with a maximum burst size of <paramref name="maxBurst"/>.
     /// </summary>
     /// <typeparam name="TResult">The type of return values this policy will handle.</typeparam>
     /// <param name="numberOfExecutions">The number of executions (call it N) permitted per timespan.</param>
@@ -64,9 +63,20 @@ public partial class Policy
         int maxBurst,
         Func<TimeSpan, Context, TResult>? retryAfterFactory)
     {
-        if (numberOfExecutions < 1) throw new ArgumentOutOfRangeException(nameof(numberOfExecutions), numberOfExecutions, $"{nameof(numberOfExecutions)} per timespan must be an integer greater than or equal to 1.");
-        if (perTimeSpan <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(perTimeSpan), perTimeSpan, $"{nameof(perTimeSpan)} must be a positive timespan.");
-        if (maxBurst < 1) throw new ArgumentOutOfRangeException(nameof(maxBurst), maxBurst, $"{nameof(maxBurst)} must be an integer greater than or equal to 1.");
+        if (numberOfExecutions < 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(numberOfExecutions), numberOfExecutions, $"{nameof(numberOfExecutions)} per timespan must be an integer greater than or equal to 1.");
+        }
+
+        if (perTimeSpan <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(perTimeSpan), perTimeSpan, $"{nameof(perTimeSpan)} must be a positive timespan.");
+        }
+
+        if (maxBurst < 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(maxBurst), maxBurst, $"{nameof(maxBurst)} must be an integer greater than or equal to 1.");
+        }
 
         var onePer = TimeSpan.FromTicks(perTimeSpan.Ticks / numberOfExecutions);
 

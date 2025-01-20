@@ -1,5 +1,4 @@
 ﻿#nullable enable
-
 namespace Polly.RateLimit;
 
 internal static class AsyncRateLimitEngine
@@ -9,9 +8,8 @@ internal static class AsyncRateLimitEngine
         Func<TimeSpan, Context, TResult>? retryAfterFactory,
         Func<Context, CancellationToken, Task<TResult>> action,
         Context context,
-        CancellationToken cancellationToken,
-        bool continueOnCapturedContext
-        )
+        bool continueOnCapturedContext,
+        CancellationToken cancellationToken)
     {
         (bool permit, TimeSpan retryAfter) = rateLimiter.PermitExecution();
 

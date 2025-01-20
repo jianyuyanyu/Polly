@@ -1,0 +1,86 @@
+name: github-pages
+
+on:
+  push:
+    branches:
+      - main
+      - release/*
+  pull_request:
+    branches:
+      - main
+      - release/*
+      - dotnet-vnext
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+
+  build-docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+
+    - name: Checkout code
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+    - name: Lint Markdown files
+      uses: DavidAnson/markdownlint-cli2-action@05f32210e84442804257b2a6f20b273450ec8265 # v19.1.0
+      with:
+        config: '.markdownlint.json'
+        globs: |
+          **/*.md
+          !**/BenchmarkDotNet.Artifacts/**/*.md
+
+    - name: Spellcheck
+      uses: rojopolis/spellcheck-github-actions@e7d2b8d65030d75d79a50c069a6ef30522e534eb # v0.46.0
+      with:
+        config_path: .github/spellcheck.yml
+
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@87b7050bc53ea08284295505d98d2aa94301e852 # v4.2.0
+
+    - name: Generate documentation
+      run: |
+        dotnet tool restore
+        dotnet build --configuration Release /p:SKIP_POLLY_ANALYZERS=true
+        dotnet docfx docs/docfx.json
+
+    - name: Publish documentation
+      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+      with:
+        name: docs
+        path: docs/_site
+        if-no-files-found: error
+
+  publish-docs:
+    needs: [ build-docs ]
+    runs-on: ubuntu-latest
+    if: |
+      github.event.repository.fork == false &&
+      github.ref_name == github.event.repository.default_branch
+
+    concurrency:
+      group: ${{ github.workflow }}
+      cancel-in-progress: false
+
+    permissions:
+      contents: write
+      pages: write
+
+    steps:
+
+    - name: Download documentation
+      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+      with:
+        name: docs
+        path: docs
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@4f9cc6602d3f66b9c108549d475ec49e8ef4d45e # v4.0.0
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: docs
+        cname: www.pollydocs.org

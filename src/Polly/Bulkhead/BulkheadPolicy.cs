@@ -24,8 +24,21 @@ public class BulkheadPolicy : Policy, IBulkheadPolicy
 
     /// <inheritdoc/>
     [DebuggerStepThrough]
-    protected override TResult Implementation<TResult>(Func<Context, CancellationToken, TResult> action, Context context, CancellationToken cancellationToken) =>
-        BulkheadEngine.Implementation(action, context, _onBulkheadRejected, _maxParallelizationSemaphore, _maxQueuedActionsSemaphore, cancellationToken);
+    protected override TResult Implementation<TResult>(Func<Context, CancellationToken, TResult> action, Context context, CancellationToken cancellationToken)
+    {
+        if (action is null)
+        {
+            throw new ArgumentNullException(nameof(action));
+        }
+
+        return BulkheadEngine.Implementation(
+            action,
+            context,
+            _onBulkheadRejected,
+            _maxParallelizationSemaphore,
+            _maxQueuedActionsSemaphore,
+            cancellationToken);
+    }
 
     /// <summary>
     /// Gets the number of slots currently available for executing actions through the bulkhead.
@@ -45,12 +58,14 @@ public class BulkheadPolicy : Policy, IBulkheadPolicy
     {
         _maxParallelizationSemaphore.Dispose();
         _maxQueuedActionsSemaphore.Dispose();
+        GC.SuppressFinalize(this);
     }
 }
 
 /// <summary>
 /// A bulkhead-isolation policy which can be applied to delegates returning a value of type <typeparamref name="TResult"/>.
 /// </summary>
+/// <typeparam name="TResult">The type of the result.</typeparam>
 public class BulkheadPolicy<TResult> : Policy<TResult>, IBulkheadPolicy<TResult>
 {
     private readonly SemaphoreSlim _maxParallelizationSemaphore;
@@ -58,7 +73,6 @@ public class BulkheadPolicy<TResult> : Policy<TResult>, IBulkheadPolicy<TResult>
     private readonly int _maxQueueingActions;
     private readonly Action<Context> _onBulkheadRejected;
 
-    /// <inheritdoc/>
     internal BulkheadPolicy(
         int maxParallelization,
         int maxQueueingActions,
@@ -72,8 +86,20 @@ public class BulkheadPolicy<TResult> : Policy<TResult>, IBulkheadPolicy<TResult>
 
     /// <inheritdoc/>
     [DebuggerStepThrough]
-    protected override TResult Implementation(Func<Context, CancellationToken, TResult> action, Context context, CancellationToken cancellationToken) =>
-        BulkheadEngine.Implementation(action, context, _onBulkheadRejected, _maxParallelizationSemaphore, _maxQueuedActionsSemaphore, cancellationToken);
+    protected override TResult Implementation(Func<Context, CancellationToken, TResult> action, Context context, CancellationToken cancellationToken)
+    {
+        if (action is null)
+        {
+            throw new ArgumentNullException(nameof(action));
+        }
+
+        return BulkheadEngine.Implementation(
+            action,
+            context,
+            _onBulkheadRejected,
+            _maxParallelizationSemaphore,
+            _maxQueuedActionsSemaphore, cancellationToken);
+    }
 
     /// <summary>
     /// Gets the number of slots currently available for executing actions through the bulkhead.
@@ -93,5 +119,6 @@ public class BulkheadPolicy<TResult> : Policy<TResult>, IBulkheadPolicy<TResult>
     {
         _maxParallelizationSemaphore.Dispose();
         _maxQueuedActionsSemaphore.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

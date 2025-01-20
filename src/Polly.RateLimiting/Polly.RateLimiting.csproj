@@ -1,23 +1,28 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net7.0;net6.0;netstandard2.0;net472;net462</TargetFrameworks>
+    <TargetFrameworks>net8.0;net6.0;netstandard2.0;net472;net462</TargetFrameworks>
     <AssemblyTitle>Polly.RateLimiting</AssemblyTitle>
     <RootNamespace>Polly.RateLimiting</RootNamespace>
     <Nullable>enable</Nullable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <ProjectType>Library</ProjectType>
-    <UseDefaultAnalyzers>true</UseDefaultAnalyzers>
-    <SkipPollyUsings>true</SkipPollyUsings>
     <MutationScore>100</MutationScore>
     <LegacySupport>true</LegacySupport>
   </PropertyGroup>
-  
+  <PropertyGroup Condition="$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net8.0'))">
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Description>Polly.RateLimiting is a .NET resilience and transient-fault-handling library that allows developers to express resilience strategies using a Rate Limiter in a fluent and thread-safe manner.</Description>
+    <PackageTags>Polly Exception Handling Resilience Transient Fault Policy Wait Bulkhead Rate-limit Throttle Hedging</PackageTags>
+  </PropertyGroup>
+
   <ItemGroup>
     <Using Include="Polly.Utils" />
-    <Using Remove="System.Net.Http" />
+    <Compile Include="..\Polly.Core\Utils\ExceptionUtilities.cs" Link="utils\ExceptionUtilities.cs" />
     <Compile Include="..\Polly.Core\Utils\Guard.cs" Link="Utils\Guard.cs" />
-    <Compile Include="..\Polly.Core\Utils\ValidationHelper.cs" Link="Utils\ValidationHelper.cs" />
-    <InternalsVisibleToTest Include="Polly.RateLimiting.Tests" />
+    <InternalsVisibleToProject Include="Polly.RateLimiting.Tests" />
   </ItemGroup>
 
   <ItemGroup>

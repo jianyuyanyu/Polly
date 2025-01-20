@@ -3,14 +3,15 @@ namespace Polly.Retry;
 
 internal static class AsyncRetryEngine
 {
+    [DebuggerDisableUserUnhandledExceptions]
     internal static async Task<TResult> ImplementationAsync<TResult>(
         Func<Context, CancellationToken, Task<TResult>> action,
         Context context,
-        CancellationToken cancellationToken,
         ExceptionPredicates shouldRetryExceptionPredicates,
         ResultPredicates<TResult> shouldRetryResultPredicates,
         Func<DelegateResult<TResult>, TimeSpan, int, Context, Task> onRetryAsync,
-        int permittedRetryCount = Int32.MaxValue,
+        CancellationToken cancellationToken,
+        int permittedRetryCount = int.MaxValue,
         IEnumerable<TimeSpan>? sleepDurationsEnumerable = null,
         Func<int, DelegateResult<TResult>, Context, TimeSpan>? sleepDurationProvider = null,
         bool continueOnCapturedContext = false)
@@ -64,7 +65,10 @@ internal static class AsyncRetryEngine
                     outcome = new DelegateResult<TResult>(handledException);
                 }
 
-                if (tryCount < int.MaxValue) { tryCount++; }
+                if (tryCount < int.MaxValue)
+                {
+                    tryCount++;
+                }
 
                 TimeSpan waitDuration = sleepDurationsEnumerator?.Current ?? (sleepDurationProvider?.Invoke(tryCount, outcome, context) ?? TimeSpan.Zero);
 

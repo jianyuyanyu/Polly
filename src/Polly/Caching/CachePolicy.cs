@@ -38,41 +38,56 @@ public class CachePolicy : Policy, ICachePolicy
     }
 
     /// <inheritdoc/>
-    protected override void Implementation(Action<Context, CancellationToken> action, Context context, CancellationToken cancellationToken) // Pass-through/NOOP policy action, for void-returning calls through a cache policy.
-        =>
-            action(context, cancellationToken);
+    protected override void Implementation(Action<Context, CancellationToken> action, Context context, CancellationToken cancellationToken)
+    {
+        // Pass-through/NOOP policy action, for void-returning calls through a cache policy.
+        if (action is null)
+        {
+            throw new ArgumentNullException(nameof(action));
+        }
+
+        action(context, cancellationToken);
+    }
 
     /// <inheritdoc/>
     [DebuggerStepThrough]
-    protected override TResult Implementation<TResult>(Func<Context, CancellationToken, TResult> action, Context context, CancellationToken cancellationToken) =>
-        CacheEngine.Implementation<TResult>(
+    protected override TResult Implementation<TResult>(Func<Context, CancellationToken, TResult> action, Context context, CancellationToken cancellationToken)
+    {
+        if (action is null)
+        {
+            throw new ArgumentNullException(nameof(action));
+        }
+
+        return CacheEngine.Implementation<TResult>(
             _syncCacheProvider.For<TResult>(),
             _ttlStrategy.For<TResult>(),
             _cacheKeyStrategy,
             action,
             context,
-            cancellationToken,
             _onCacheGet,
             _onCacheMiss,
             _onCachePut,
             _onCacheGetError,
-            _onCachePutError);
+            _onCachePutError,
+            cancellationToken);
+    }
 }
 
 /// <summary>
 /// A cache policy that can be applied to the results of delegate executions.
 /// </summary>
+/// <typeparam name="TResult">The type of the result.</typeparam>
 public class CachePolicy<TResult> : Policy<TResult>, ICachePolicy<TResult>
 {
-    private ISyncCacheProvider<TResult> _syncCacheProvider;
-    private ITtlStrategy<TResult> _ttlStrategy;
-    private Func<Context, string> _cacheKeyStrategy;
-
     private readonly Action<Context, string> _onCacheGet;
     private readonly Action<Context, string> _onCacheMiss;
     private readonly Action<Context, string> _onCachePut;
     private readonly Action<Context, string, Exception>? _onCacheGetError;
     private readonly Action<Context, string, Exception>? _onCachePutError;
+
+    private readonly ISyncCacheProvider<TResult> _syncCacheProvider;
+    private readonly ITtlStrategy<TResult> _ttlStrategy;
+    private readonly Func<Context, string> _cacheKeyStrategy;
 
     internal CachePolicy(
         ISyncCacheProvider<TResult> syncCacheProvider,
@@ -97,17 +112,24 @@ public class CachePolicy<TResult> : Policy<TResult>, ICachePolicy<TResult>
 
     /// <inheritdoc/>
     [DebuggerStepThrough]
-    protected override TResult Implementation(Func<Context, CancellationToken, TResult> action, Context context, CancellationToken cancellationToken) =>
-        CacheEngine.Implementation(
+    protected override TResult Implementation(Func<Context, CancellationToken, TResult> action, Context context, CancellationToken cancellationToken)
+    {
+        if (action is null)
+        {
+            throw new ArgumentNullException(nameof(action));
+        }
+
+        return CacheEngine.Implementation(
             _syncCacheProvider,
             _ttlStrategy,
             _cacheKeyStrategy,
             action,
             context,
-            cancellationToken,
             _onCacheGet,
             _onCacheMiss,
             _onCachePut,
             _onCacheGetError,
-            _onCachePutError);
+            _onCachePutError,
+            cancellationToken);
+    }
 }

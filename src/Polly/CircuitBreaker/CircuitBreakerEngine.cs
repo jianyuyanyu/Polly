@@ -2,15 +2,16 @@
 
 namespace Polly.CircuitBreaker;
 
-internal class CircuitBreakerEngine
+internal static class CircuitBreakerEngine
 {
+    [DebuggerDisableUserUnhandledExceptions]
     internal static TResult Implementation<TResult>(
         Func<Context, CancellationToken, TResult> action,
         Context context,
-        CancellationToken cancellationToken,
         ExceptionPredicates shouldHandleExceptionPredicates,
         ResultPredicates<TResult> shouldHandleResultPredicates,
-        ICircuitController<TResult> breakerController)
+        ICircuitController<TResult> breakerController,
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -45,6 +46,7 @@ internal class CircuitBreakerEngine
             {
                 ExceptionDispatchInfo.Capture(handledException).Throw();
             }
+
             throw;
         }
     }

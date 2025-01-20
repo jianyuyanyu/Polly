@@ -42,27 +42,44 @@ public class AsyncCachePolicy : AsyncPolicy
         Func<Context, CancellationToken, Task> action,
         Context context,
         CancellationToken cancellationToken,
-        bool continueOnCapturedContext) =>
+        bool continueOnCapturedContext)
+    {
+        if (action is null)
+        {
+            throw new ArgumentNullException(nameof(action));
+        }
+
         // Pass-through/NOOP policy action, for void-returning executions through the cache policy.
-        action(context, cancellationToken);
+        return action(context, cancellationToken);
+    }
 
     /// <inheritdoc/>
     [DebuggerStepThrough]
-    protected override Task<TResult> ImplementationAsync<TResult>(Func<Context, CancellationToken, Task<TResult>> action, Context context, CancellationToken cancellationToken,
-        bool continueOnCapturedContext) =>
-        AsyncCacheEngine.ImplementationAsync<TResult>(
+    protected override Task<TResult> ImplementationAsync<TResult>(
+        Func<Context, CancellationToken, Task<TResult>> action,
+        Context context,
+        CancellationToken cancellationToken,
+        bool continueOnCapturedContext)
+    {
+        if (action is null)
+        {
+            throw new ArgumentNullException(nameof(action));
+        }
+
+        return AsyncCacheEngine.ImplementationAsync<TResult>(
             _asyncCacheProvider.AsyncFor<TResult>(),
             _ttlStrategy.For<TResult>(),
             _cacheKeyStrategy,
             action,
             context,
-            cancellationToken,
             continueOnCapturedContext,
             _onCacheGet,
             _onCacheMiss,
             _onCachePut,
             _onCacheGetError,
-            _onCachePutError);
+            _onCachePutError,
+            cancellationToken);
+    }
 }
 
 /// <summary>
@@ -71,7 +88,6 @@ public class AsyncCachePolicy : AsyncPolicy
 /// <typeparam name="TResult">The return type of delegates which may be executed through the policy.</typeparam>
 public class AsyncCachePolicy<TResult> : AsyncPolicy<TResult>
 {
-    private IAsyncCacheProvider<TResult> _asyncCacheProvider;
     private readonly ITtlStrategy<TResult> _ttlStrategy;
     private readonly Func<Context, string> _cacheKeyStrategy;
 
@@ -80,6 +96,8 @@ public class AsyncCachePolicy<TResult> : AsyncPolicy<TResult>
     private readonly Action<Context, string> _onCachePut;
     private readonly Action<Context, string, Exception>? _onCacheGetError;
     private readonly Action<Context, string, Exception>? _onCachePutError;
+
+    private readonly IAsyncCacheProvider<TResult> _asyncCacheProvider;
 
     internal AsyncCachePolicy(
         IAsyncCacheProvider<TResult> asyncCacheProvider,
@@ -104,20 +122,30 @@ public class AsyncCachePolicy<TResult> : AsyncPolicy<TResult>
 
     /// <inheritdoc/>
     [DebuggerStepThrough]
-    protected override Task<TResult> ImplementationAsync(Func<Context, CancellationToken, Task<TResult>> action, Context context, CancellationToken cancellationToken,
-        bool continueOnCapturedContext) =>
-        AsyncCacheEngine.ImplementationAsync<TResult>(
+    protected override Task<TResult> ImplementationAsync(
+        Func<Context, CancellationToken, Task<TResult>> action,
+        Context context,
+        CancellationToken cancellationToken,
+        bool continueOnCapturedContext)
+    {
+        if (action is null)
+        {
+            throw new ArgumentNullException(nameof(action));
+        }
+
+        return AsyncCacheEngine.ImplementationAsync<TResult>(
             _asyncCacheProvider,
             _ttlStrategy,
             _cacheKeyStrategy,
             action,
             context,
-            cancellationToken,
             continueOnCapturedContext,
             _onCacheGet,
             _onCacheMiss,
             _onCachePut,
             _onCacheGetError,
-            _onCachePutError);
+            _onCachePutError,
+            cancellationToken);
+    }
 }
 

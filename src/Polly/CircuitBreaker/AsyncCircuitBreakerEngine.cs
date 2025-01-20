@@ -1,15 +1,16 @@
 ﻿namespace Polly.CircuitBreaker;
 
-internal class AsyncCircuitBreakerEngine
+internal static class AsyncCircuitBreakerEngine
 {
+    [DebuggerDisableUserUnhandledExceptions]
     internal static async Task<TResult> ImplementationAsync<TResult>(
         Func<Context, CancellationToken, Task<TResult>> action,
         Context context,
-        CancellationToken cancellationToken,
         bool continueOnCapturedContext,
         ExceptionPredicates shouldHandleExceptionPredicates,
         ResultPredicates<TResult> shouldHandleResultPredicates,
-        ICircuitController<TResult> breakerController)
+        ICircuitController<TResult> breakerController,
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 

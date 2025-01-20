@@ -3,15 +3,39 @@
   "isRoot": true,
   "tools": {
     "cake.tool": {
-      "version": "3.0.0",
+      "version": "5.0.0",
       "commands": [
         "dotnet-cake"
       ]
     },
-    "GitVersion.Tool": {
-      "version": "5.11.1",
+    "docfx": {
+      "version": "2.78.2",
       "commands": [
-        "dotnet-gitversion"
+        "docfx"
+      ]
+    },
+    "dotnet-validate": {
+      "version": "0.0.1-preview.304",
+      "commands": [
+        "dotnet-validate"
+      ]
+    },
+    "markdownsnippets.tool": {
+      "version": "27.0.2",
+      "commands": [
+        "mdsnippets"
+      ]
+    },
+    "MartinCostello.WaitForNuGetPackage": {
+      "version": "1.1.0",
+      "commands": [
+        "dotnet-wait-for-package"
+      ]
+    },
+    "sign": {
+      "version": "0.9.1-beta.24529.1",
+      "commands": [
+        "sign"
       ]
     }
   }

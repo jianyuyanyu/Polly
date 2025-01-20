@@ -1,28 +1,30 @@
-using Polly.Strategy;
-
 namespace Polly.Timeout;
 
-#pragma warning disable CA1815 // Equals not overridden because this class is just a data holder.
+#pragma warning disable CA1815 // Override equals and operator equals on value types
 
 /// <summary>
-/// Arguments used by the timeout strategy to notify that timeout occurred.
+/// Arguments used by the timeout strategy to notify that a timeout occurred.
 /// </summary>
-public readonly struct OnTimeoutArguments : IResilienceArguments
+/// <remarks>
+/// Always use the constructor when creating this struct, otherwise we do not guarantee binary compatibility.
+/// </remarks>
+public readonly struct OnTimeoutArguments
 {
-    internal OnTimeoutArguments(ResilienceContext context, Exception exception, TimeSpan timeout)
+    /// <summary>
+    /// Initializes a new instance of the <see cref="OnTimeoutArguments"/> struct.
+    /// </summary>
+    /// <param name="context">The context associated with the execution of a user-provided callback.</param>
+    /// <param name="timeout">The timeout value assigned.</param>
+    public OnTimeoutArguments(ResilienceContext context, TimeSpan timeout)
     {
         Context = context;
-        Exception = exception;
         Timeout = timeout;
     }
 
-    /// <inheritdoc/>
-    public ResilienceContext Context { get; }
-
     /// <summary>
-    /// Gets the original exception that caused the timeout.
+    /// Gets the context associated with the execution of a user-provided callback.
     /// </summary>
-    public Exception Exception { get; }
+    public ResilienceContext Context { get; }
 
     /// <summary>
     /// Gets the timeout value assigned.

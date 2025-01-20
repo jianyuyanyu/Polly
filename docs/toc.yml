@@ -1,0 +1,29 @@
+- name: Introduction
+  href: index.md
+
+- name: Getting started
+  href: getting-started.md
+
+- name: Migrate to v8
+  href: migration-v8.md
+
+- name: Resilience strategies
+  href: strategies/
+
+- name: Resilience pipelines
+  href: pipelines/
+
+- name: Chaos engineering
+  href: chaos/
+
+- name: Advanced topics
+  href: advanced/
+
+- name: Extensibility
+  href: extensibility/
+
+- name: Community and resources
+  href: community/
+
+- name: API
+  href: api/

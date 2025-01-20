@@ -1,7 +1,7 @@
 ﻿#nullable enable
 namespace Polly.CircuitBreaker;
 
-internal class RollingHealthMetrics : IHealthMetrics
+internal sealed class RollingHealthMetrics : IHealthMetrics
 {
     private readonly long _samplingDuration;
     private readonly long _windowDuration;
@@ -70,7 +70,9 @@ internal class RollingHealthMetrics : IHealthMetrics
         }
 
         while (_windows.Count > 0 && now - _windows.Peek().StartedAt >= _samplingDuration)
+        {
             _windows.Dequeue();
+        }
 
         return _currentWindow;
     }

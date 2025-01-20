@@ -3,27 +3,47 @@ using Polly.Telemetry;
 
 namespace Polly.RateLimiting;
 
-internal sealed class RateLimiterResilienceStrategy : ResilienceStrategy
+internal sealed class RateLimiterResilienceStrategy : ResilienceStrategy, IDisposable, IAsyncDisposable
 {
-    private readonly ResilienceTelemetry _telemetry;
+    private readonly ResilienceStrategyTelemetry _telemetry;
 
-    public RateLimiterResilienceStrategy(RateLimiter limiter, OnRateLimiterRejectedEvent @event, ResilienceTelemetry telemetry)
+    public RateLimiterResilienceStrategy(
+        Func<RateLimiterArguments, ValueTask<RateLimitLease>> limiter,
+        Func<OnRateLimiterRejectedArguments, ValueTask>? onRejected,
+        ResilienceStrategyTelemetry telemetry,
+        DisposeWrapper? wrapper)
     {
         Limiter = limiter;
-        OnLeaseRejected = @event.CreateHandlerInternal();
+        OnLeaseRejected = onRejected;
 
         _telemetry = telemetry;
+        Wrapper = wrapper;
     }
 
-    public RateLimiter Limiter { get; }
+    public Func<RateLimiterArguments, ValueTask<RateLimitLease>> Limiter { get; }
 
     public Func<OnRateLimiterRejectedArguments, ValueTask>? OnLeaseRejected { get; }
 
-    protected override async ValueTask<TResult> ExecuteCoreAsync<TResult, TState>(Func<ResilienceContext, TState, ValueTask<TResult>> callback, ResilienceContext context, TState state)
+    public DisposeWrapper? Wrapper { get; }
+
+    public void Dispose() => Wrapper?.Dispose();
+
+    public ValueTask DisposeAsync()
     {
-        using var lease = await Limiter.AcquireAsync(
-            permitCount: 1,
-            context.CancellationToken).ConfigureAwait(context.ContinueOnCapturedContext);
+        if (Wrapper is not null)
+        {
+            return Wrapper.DisposeAsync();
+        }
+
+        return default;
+    }
+
+    protected override async ValueTask<Outcome<TResult>> ExecuteCore<TResult, TState>(
+        Func<ResilienceContext, TState, ValueTask<Outcome<TResult>>> callback,
+        ResilienceContext context,
+        TState state)
+    {
+        using var lease = await Limiter(new RateLimiterArguments(context)).ConfigureAwait(context.ContinueOnCapturedContext);
 
         if (lease.IsAcquired)
         {
@@ -37,13 +57,20 @@ internal sealed class RateLimiterResilienceStrategy : ResilienceStrategy
             retryAfter = retryAfterValue;
         }
 
-        _telemetry.Report(RateLimiterConstants.OnRateLimiterRejectedEvent, context);
+        var args = new OnRateLimiterRejectedArguments(context, lease);
+        _telemetry.Report(new(ResilienceEventSeverity.Error, RateLimiterConstants.OnRateLimiterRejectedEvent), context, args);
 
         if (OnLeaseRejected != null)
         {
-            await OnLeaseRejected(new OnRateLimiterRejectedArguments(context, lease, retryAfter)).ConfigureAwait(context.ContinueOnCapturedContext);
+            await OnLeaseRejected(new OnRateLimiterRejectedArguments(context, lease)).ConfigureAwait(context.ContinueOnCapturedContext);
         }
 
-        throw retryAfter.HasValue ? new RateLimiterRejectedException(retryAfter.Value) : new RateLimiterRejectedException();
+        var exception = retryAfter is not null
+            ? new RateLimiterRejectedException(retryAfterValue)
+            : new RateLimiterRejectedException();
+
+        _telemetry.SetTelemetrySource(exception);
+
+        return Outcome.FromException<TResult>(exception.TrySetStackTrace());
     }
 }

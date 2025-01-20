@@ -6,17 +6,20 @@ namespace Polly.Caching;
 /// </summary>
 public class SlidingTtl : ITtlStrategy
 {
-    private readonly Ttl ttl;
+    private readonly Ttl _ttl;
 
     /// <summary>
-    /// Constructs a new instance of the <see cref="SlidingTtl"/> ttl strategy.
+    /// Initializes a new instance of the <see cref="SlidingTtl"/> class.
     /// </summary>
     /// <param name="slidingTtl">The sliding timespan for which cache items should be considered valid.</param>
     public SlidingTtl(TimeSpan slidingTtl)
     {
-        if (slidingTtl < TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(slidingTtl), "The ttl for items to cache must be greater than zero.");
+        if (slidingTtl < TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(slidingTtl), "The ttl for items to cache must be greater than zero.");
+        }
 
-        ttl = new Ttl(slidingTtl, true);
+        _ttl = new Ttl(slidingTtl, true);
     }
 
     /// <summary>
@@ -26,5 +29,5 @@ public class SlidingTtl : ITtlStrategy
     /// <param name="result">The execution result.</param>
     /// <returns>A <see cref="Ttl"/> representing the remaining Ttl of the cached item.</returns>
     public Ttl GetTtl(Context context, object? result) =>
-        ttl;
+        _ttl;
 }

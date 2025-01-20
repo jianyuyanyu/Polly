@@ -13,10 +13,9 @@ public class AsyncRetryPolicy : AsyncPolicy, IRetryPolicy
     internal AsyncRetryPolicy(
         PolicyBuilder policyBuilder,
         Func<Exception, TimeSpan, int, Context, Task> onRetryAsync,
-        int permittedRetryCount = Int32.MaxValue,
+        int permittedRetryCount = int.MaxValue,
         IEnumerable<TimeSpan> sleepDurationsEnumerable = null,
-        Func<int, Exception, Context, TimeSpan> sleepDurationProvider = null
-    )
+        Func<int, Exception, Context, TimeSpan> sleepDurationProvider = null)
         : base(policyBuilder)
     {
         _permittedRetryCount = permittedRetryCount;
@@ -27,27 +26,40 @@ public class AsyncRetryPolicy : AsyncPolicy, IRetryPolicy
 
     /// <inheritdoc/>
     [DebuggerStepThrough]
-    protected override Task<TResult> ImplementationAsync<TResult>(Func<Context, CancellationToken, Task<TResult>> action, Context context, CancellationToken cancellationToken,
-        bool continueOnCapturedContext) =>
-        AsyncRetryEngine.ImplementationAsync(
+
+    protected override Task<TResult> ImplementationAsync<TResult>(
+        Func<Context, CancellationToken, Task<TResult>> action,
+        Context context,
+        CancellationToken cancellationToken,
+        bool continueOnCapturedContext)
+    {
+        if (action is null)
+        {
+            throw new ArgumentNullException(nameof(action));
+        }
+
+        var sleepDurationProvider = _sleepDurationProvider != null
+            ? (retryCount, outcome, ctx) => _sleepDurationProvider(retryCount, outcome.Exception, ctx)
+            : (Func<int, DelegateResult<TResult>, Context, TimeSpan>)null;
+
+        return AsyncRetryEngine.ImplementationAsync(
             action,
             context,
-            cancellationToken,
             ExceptionPredicates,
             ResultPredicates<TResult>.None,
             (outcome, timespan, retryCount, ctx) => _onRetryAsync(outcome.Exception, timespan, retryCount, ctx),
+            cancellationToken,
             _permittedRetryCount,
             _sleepDurationsEnumerable,
-            _sleepDurationProvider != null
-                ? (retryCount, outcome, ctx) => _sleepDurationProvider(retryCount, outcome.Exception, ctx)
-                : (Func<int, DelegateResult<TResult>, Context, TimeSpan>) null,
-            continueOnCapturedContext
-        );
+            sleepDurationProvider,
+            continueOnCapturedContext);
+    }
 }
 
 /// <summary>
 /// A retry policy that can be applied to asynchronous delegates returning a value of type <typeparamref name="TResult"/>.
 /// </summary>
+/// <typeparam name="TResult">The type of the result.</typeparam>
 public class AsyncRetryPolicy<TResult> : AsyncPolicy<TResult>, IRetryPolicy<TResult>
 {
     private readonly Func<DelegateResult<TResult>, TimeSpan, int, Context, Task> _onRetryAsync;
@@ -58,10 +70,9 @@ public class AsyncRetryPolicy<TResult> : AsyncPolicy<TResult>, IRetryPolicy<TRes
     internal AsyncRetryPolicy(
         PolicyBuilder<TResult> policyBuilder,
         Func<DelegateResult<TResult>, TimeSpan, int, Context, Task> onRetryAsync,
-        int permittedRetryCount = Int32.MaxValue,
+        int permittedRetryCount = int.MaxValue,
         IEnumerable<TimeSpan> sleepDurationsEnumerable = null,
-        Func<int, DelegateResult<TResult>, Context, TimeSpan> sleepDurationProvider = null
-    )
+        Func<int, DelegateResult<TResult>, Context, TimeSpan> sleepDurationProvider = null)
         : base(policyBuilder)
     {
         _permittedRetryCount = permittedRetryCount;
@@ -72,19 +83,28 @@ public class AsyncRetryPolicy<TResult> : AsyncPolicy<TResult>, IRetryPolicy<TRes
 
     /// <inheritdoc/>
     [DebuggerStepThrough]
-    protected override Task<TResult> ImplementationAsync(Func<Context, CancellationToken, Task<TResult>> action, Context context, CancellationToken cancellationToken,
-        bool continueOnCapturedContext) =>
-        AsyncRetryEngine.ImplementationAsync(
+    protected override Task<TResult> ImplementationAsync(
+        Func<Context, CancellationToken, Task<TResult>> action,
+        Context context,
+        CancellationToken cancellationToken,
+        bool continueOnCapturedContext)
+    {
+        if (action is null)
+        {
+            throw new ArgumentNullException(nameof(action));
+        }
+
+        return AsyncRetryEngine.ImplementationAsync(
             action,
             context,
-            cancellationToken,
             ExceptionPredicates,
             ResultPredicates,
             _onRetryAsync,
+            cancellationToken,
             _permittedRetryCount,
             _sleepDurationsEnumerable,
             _sleepDurationProvider,
-            continueOnCapturedContext
-        );
+            continueOnCapturedContext);
+    }
 }
 

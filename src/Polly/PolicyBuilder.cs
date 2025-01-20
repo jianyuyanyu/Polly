@@ -14,7 +14,7 @@ public sealed partial class PolicyBuilder
     }
 
     /// <summary>
-    /// Predicates specifying exceptions that the policy is being configured to handle.
+    /// Gets the predicates specifying exceptions that the policy is being configured to handle.
     /// </summary>
     internal ExceptionPredicates ExceptionPredicates { get; }
 
@@ -51,15 +51,17 @@ public sealed partial class PolicyBuilder
     public override int GetHashCode() =>
         base.GetHashCode();
 
+#pragma warning disable S4049 //Consider making method a property
     /// <summary>
-    /// Gets the <see cref="T:System.Type" /> of the current instance.
+    /// Gets the <see cref="System.Type" /> of the current instance.
     /// </summary>
     /// <returns>
-    /// The <see cref="T:System.Type" /> instance that represents the exact runtime type of the current instance.
+    /// The <see cref="System.Type" /> instance that represents the exact runtime type of the current instance.
     /// </returns>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public new Type GetType() =>
         base.GetType();
+#pragma warning restore S4049
 
     #endregion
 }
@@ -67,6 +69,7 @@ public sealed partial class PolicyBuilder
 /// <summary>
 /// Builder class that holds the list of current execution predicates filtering TResult result values.
 /// </summary>
+/// <typeparam name="TResult">The type of the result value that the execution predicates are filtering.</typeparam>
 public sealed partial class PolicyBuilder<TResult>
 {
     private PolicyBuilder()
@@ -75,23 +78,23 @@ public sealed partial class PolicyBuilder<TResult>
         ResultPredicates = new ResultPredicates<TResult>();
     }
 
-    internal PolicyBuilder(Func<TResult, bool> resultPredicate) : this() =>
-        OrResult(resultPredicate);
+    internal PolicyBuilder(Func<TResult, bool> resultPredicate)
+        : this() => OrResult(resultPredicate);
 
-    internal PolicyBuilder(ExceptionPredicate predicate) : this() =>
-        ExceptionPredicates.Add(predicate);
+    internal PolicyBuilder(ExceptionPredicate predicate)
+        : this() => ExceptionPredicates.Add(predicate);
 
     internal PolicyBuilder(ExceptionPredicates exceptionPredicates)
         : this() =>
         ExceptionPredicates = exceptionPredicates;
 
     /// <summary>
-    /// Predicates specifying exceptions that the policy is being configured to handle.
+    /// Gets the predicates specifying exceptions that the policy is being configured to handle.
     /// </summary>
     internal ExceptionPredicates ExceptionPredicates { get; }
 
     /// <summary>
-    /// Predicates specifying results that the policy is being configured to handle.
+    /// Gets the predicates specifying results that the policy is being configured to handle.
     /// </summary>
     internal ResultPredicates<TResult> ResultPredicates { get; }
 
@@ -128,15 +131,17 @@ public sealed partial class PolicyBuilder<TResult>
     public override int GetHashCode() =>
         base.GetHashCode();
 
+#pragma warning disable S4049 //Consider making method a property
     /// <summary>
-    /// Gets the <see cref="T:System.Type" /> of the current instance.
+    /// Gets the <see cref="System.Type" /> of the current instance.
     /// </summary>
     /// <returns>
-    /// The <see cref="T:System.Type" /> instance that represents the exact runtime type of the current instance.
+    /// The <see cref="System.Type" /> instance that represents the exact runtime type of the current instance.
     /// </returns>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public new Type GetType() =>
         base.GetType();
+#pragma warning restore S4049
 
     #endregion
 }

@@ -1,8 +1,7 @@
 ﻿#nullable enable
-
 namespace Polly.CircuitBreaker;
 
-internal class SingleHealthMetrics : IHealthMetrics
+internal sealed class SingleHealthMetrics : IHealthMetrics
 {
     private readonly long _samplingDuration;
 
@@ -33,6 +32,7 @@ internal class SingleHealthMetrics : IHealthMetrics
                 StartedAt = now
             };
         }
+
         return _current;
     }
 }

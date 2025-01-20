@@ -3,13 +3,14 @@
 /// <summary>
 /// A collection of predicates used to define whether a policy handles a given <typeparamref name="TResult"/> value.
 /// </summary>
+/// <typeparam name="TResult">The type of the result.</typeparam>
 public class ResultPredicates<TResult>
 {
     private List<ResultPredicate<TResult>> _predicates;
 
     internal void Add(ResultPredicate<TResult> predicate)
     {
-        _predicates ??= new List<ResultPredicate<TResult>>(); // The ?? pattern here is sufficient; only a deliberately contrived example would lead to the same PolicyBuilder instance being used in a multi-threaded way to define policies simultaneously on multiple threads.
+        _predicates ??= []; // The ?? pattern here is sufficient; only a deliberately contrived example would lead to the same PolicyBuilder instance being used in a multi-threaded way to define policies simultaneously on multiple threads.
 
         _predicates.Add(predicate);
     }
@@ -18,11 +19,15 @@ public class ResultPredicates<TResult>
     /// Returns a bool indicating whether the passed <typeparamref name="TResult"/> value matched any predicates.
     /// </summary>
     /// <param name="result">The <typeparamref name="TResult"/> value to assess against the predicates.</param>
+    /// <returns><see langword="true"/> if <typeparamref name="TResult"/> value matches any predicates. <see langword="false"/> otherwise.</returns>
     public bool AnyMatch(TResult result)
     {
-        if (_predicates == null) return false;
+        if (_predicates == null)
+        {
+            return false;
+        }
 
-        return _predicates.Any(predicate => predicate(result));
+        return _predicates.Exists(predicate => predicate(result));
     }
 
     /// <summary>

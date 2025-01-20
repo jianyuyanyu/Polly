@@ -5,36 +5,36 @@
 /// </summary>
 public class CircuitBreakerPolicy : Policy, ICircuitBreakerPolicy
 {
-    internal readonly ICircuitController<EmptyStruct> _breakerController;
+    internal readonly ICircuitController<EmptyStruct> BreakerController;
 
     internal CircuitBreakerPolicy(
         PolicyBuilder policyBuilder,
-        ICircuitController<EmptyStruct> breakerController
-        ) : base(policyBuilder) =>
-        _breakerController = breakerController;
+        ICircuitController<EmptyStruct> breakerController)
+        : base(policyBuilder) =>
+        BreakerController = breakerController;
 
     /// <summary>
     /// Gets the state of the underlying circuit.
     /// </summary>
-    public CircuitState CircuitState => _breakerController.CircuitState;
+    public CircuitState CircuitState => BreakerController.CircuitState;
 
     /// <summary>
     /// Gets the last exception handled by the circuit-breaker.
     /// <remarks>This will be null if no exceptions have been handled by the circuit-breaker since the circuit last closed.</remarks>
     /// </summary>
-    public Exception LastException => _breakerController.LastException;
+    public Exception LastException => BreakerController.LastException;
 
     /// <summary>
     /// Isolates (opens) the circuit manually, and holds it in this state until a call to <see cref="Reset()"/> is made.
     /// </summary>
     public void Isolate() =>
-        _breakerController.Isolate();
+        BreakerController.Isolate();
 
     /// <summary>
     /// Closes the circuit, and resets any statistics controlling automated circuit-breaking.
     /// </summary>
     public void Reset() =>
-        _breakerController.Reset();
+        BreakerController.Reset();
 
     /// <inheritdoc/>
     [DebuggerStepThrough]
@@ -44,10 +44,10 @@ public class CircuitBreakerPolicy : Policy, ICircuitBreakerPolicy
         CircuitBreakerEngine.Implementation<EmptyStruct>(
             (ctx, ct) => { result = action(ctx, ct); return EmptyStruct.Instance; },
             context,
-            cancellationToken,
             ExceptionPredicates,
             ResultPredicates<EmptyStruct>.None,
-            _breakerController);
+            BreakerController,
+            cancellationToken);
         return result;
     }
 }
@@ -55,53 +55,61 @@ public class CircuitBreakerPolicy : Policy, ICircuitBreakerPolicy
 /// <summary>
 /// A circuit-breaker policy that can be applied to delegates returning a value of type <typeparamref name="TResult"/>.
 /// </summary>
+/// <typeparam name="TResult">The type of the result.</typeparam>
 public class CircuitBreakerPolicy<TResult> : Policy<TResult>, ICircuitBreakerPolicy<TResult>
 {
-    internal readonly ICircuitController<TResult> _breakerController;
+    internal readonly ICircuitController<TResult> BreakerController;
 
     internal CircuitBreakerPolicy(
         PolicyBuilder<TResult> policyBuilder,
-        ICircuitController<TResult> breakerController
-        ) : base(policyBuilder) =>
-        _breakerController = breakerController;
+        ICircuitController<TResult> breakerController)
+        : base(policyBuilder) =>
+        BreakerController = breakerController;
 
     /// <summary>
     /// Gets the state of the underlying circuit.
     /// </summary>
-    public CircuitState CircuitState => _breakerController.CircuitState;
+    public CircuitState CircuitState => BreakerController.CircuitState;
 
     /// <summary>
     /// Gets the last exception handled by the circuit-breaker.
     /// <remarks>This will be null if no exceptions have been handled by the circuit-breaker since the circuit last closed, or if the last event handled by the circuit was a handled <typeparamref name="TResult"/> value.</remarks>
     /// </summary>
-    public Exception LastException => _breakerController.LastException;
+    public Exception LastException => BreakerController.LastException;
 
     /// <summary>
     /// Gets the last result returned from a user delegate which the circuit-breaker handled.
     /// <remarks>This will be default(<typeparamref name="TResult"/>) if no results have been handled by the circuit-breaker since the circuit last closed, or if the last event handled by the circuit was an exception.</remarks>
     /// </summary>
-    public TResult LastHandledResult => _breakerController.LastHandledResult;
+    public TResult LastHandledResult => BreakerController.LastHandledResult;
 
     /// <summary>
     /// Isolates (opens) the circuit manually, and holds it in this state until a call to <see cref="Reset()"/> is made.
     /// </summary>
     public void Isolate() =>
-        _breakerController.Isolate();
+        BreakerController.Isolate();
 
     /// <summary>
     /// Closes the circuit, and resets any statistics controlling automated circuit-breaking.
     /// </summary>
     public void Reset() =>
-        _breakerController.Reset();
+        BreakerController.Reset();
 
     /// <inheritdoc/>
     [DebuggerStepThrough]
-    protected override TResult Implementation(Func<Context, CancellationToken, TResult> action, Context context, CancellationToken cancellationToken) =>
-        CircuitBreakerEngine.Implementation(
+    protected override TResult Implementation(Func<Context, CancellationToken, TResult> action, Context context, CancellationToken cancellationToken)
+    {
+        if (action is null)
+        {
+            throw new ArgumentNullException(nameof(action));
+        }
+
+        return CircuitBreakerEngine.Implementation(
             action,
             context,
-            cancellationToken,
             ExceptionPredicates,
             ResultPredicates,
-            _breakerController);
+            BreakerController,
+            cancellationToken);
+    }
 }

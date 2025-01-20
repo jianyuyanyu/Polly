@@ -5,16 +5,16 @@
 /// </summary>
 public partial class PolicyWrap : Policy, IPolicyWrap
 {
-    private ISyncPolicy _outer;
-    private ISyncPolicy _inner;
+    private readonly ISyncPolicy _outer;
+    private readonly ISyncPolicy _inner;
 
     /// <summary>
-    /// Returns the outer <see cref="IsPolicy"/> in this <see cref="IPolicyWrap"/>
+    /// Gets the outer <see cref="IsPolicy"/> in this <see cref="IPolicyWrap"/>.
     /// </summary>
     public IsPolicy Outer => _outer;
 
     /// <summary>
-    /// Returns the next inner <see cref="IsPolicy"/> in this <see cref="IPolicyWrap"/>
+    /// Gets the next inner <see cref="IsPolicy"/> in this <see cref="IPolicyWrap"/>.
     /// </summary>
     public IsPolicy Inner => _inner;
 
@@ -31,10 +31,9 @@ public partial class PolicyWrap : Policy, IPolicyWrap
         PolicyWrapEngine.Implementation(
             action,
             context,
-            cancellationToken,
             _outer,
-            _inner
-        );
+            _inner,
+            cancellationToken);
 
     /// <inheritdoc/>
     [DebuggerStepThrough]
@@ -42,10 +41,9 @@ public partial class PolicyWrap : Policy, IPolicyWrap
         PolicyWrapEngine.Implementation<TResult>(
             action,
             context,
-            cancellationToken,
             _outer,
-            _inner
-        );
+            _inner,
+            cancellationToken);
 }
 
 /// <summary>
@@ -54,21 +52,21 @@ public partial class PolicyWrap : Policy, IPolicyWrap
 /// <typeparam name="TResult">The return type of delegates which may be executed through the policy.</typeparam>
 public partial class PolicyWrap<TResult> : Policy<TResult>, IPolicyWrap<TResult>
 {
-    private ISyncPolicy _outerNonGeneric;
-    private ISyncPolicy _innerNonGeneric;
+    private readonly ISyncPolicy _outerNonGeneric;
+    private readonly ISyncPolicy _innerNonGeneric;
 
-    private ISyncPolicy<TResult> _outerGeneric;
-    private ISyncPolicy<TResult> _innerGeneric;
-
-    /// <summary>
-    /// Returns the outer <see cref="IsPolicy"/> in this <see cref="IPolicyWrap{TResult}"/>
-    /// </summary>
-    public IsPolicy Outer => (IsPolicy) _outerGeneric ?? _outerNonGeneric;
+    private readonly ISyncPolicy<TResult> _outerGeneric;
+    private readonly ISyncPolicy<TResult> _innerGeneric;
 
     /// <summary>
-    /// Returns the next inner <see cref="IsPolicy"/> in this <see cref="IPolicyWrap{TResult}"/>
+    /// Gets the outer <see cref="IsPolicy"/> in this <see cref="IPolicyWrap{TResult}"/>.
     /// </summary>
-    public IsPolicy Inner => (IsPolicy) _innerGeneric ?? _innerNonGeneric;
+    public IsPolicy Outer => (IsPolicy)_outerGeneric ?? _outerNonGeneric;
+
+    /// <summary>
+    /// Gets the next inner <see cref="IsPolicy"/> in this <see cref="IPolicyWrap{TResult}"/>.
+    /// </summary>
+    public IsPolicy Inner => (IsPolicy)_innerGeneric ?? _innerNonGeneric;
 
     internal PolicyWrap(Policy outer, ISyncPolicy<TResult> inner)
         : base(outer.ExceptionPredicates, ResultPredicates<TResult>.None)
@@ -101,21 +99,18 @@ public partial class PolicyWrap<TResult> : Policy<TResult>, IPolicyWrap<TResult>
                 return PolicyWrapEngine.Implementation<TResult>(
                     action,
                     context,
-                    cancellationToken,
                     _outerNonGeneric,
-                    _innerNonGeneric
-                );
+                    _innerNonGeneric,
+                    cancellationToken);
             }
             else if (_innerGeneric != null)
             {
                 return PolicyWrapEngine.Implementation<TResult>(
                     action,
                     context,
-                    cancellationToken,
                     _outerNonGeneric,
-                    _innerGeneric
-                );
-
+                    _innerGeneric,
+                    cancellationToken);
             }
             else
             {
@@ -129,10 +124,9 @@ public partial class PolicyWrap<TResult> : Policy<TResult>, IPolicyWrap<TResult>
                 return PolicyWrapEngine.Implementation<TResult>(
                     action,
                     context,
-                    cancellationToken,
                     _outerGeneric,
-                    _innerNonGeneric
-                );
+                    _innerNonGeneric,
+                    cancellationToken);
 
             }
             else if (_innerGeneric != null)
@@ -140,11 +134,9 @@ public partial class PolicyWrap<TResult> : Policy<TResult>, IPolicyWrap<TResult>
                 return PolicyWrapEngine.Implementation<TResult>(
                     action,
                     context,
-                    cancellationToken,
                     _outerGeneric,
-                    _innerGeneric
-                );
-
+                    _innerGeneric,
+                    cancellationToken);
             }
             else
             {

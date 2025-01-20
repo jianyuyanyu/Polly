@@ -1,17 +1,18 @@
 ﻿#nullable enable
 namespace Polly.Fallback;
 
-internal class AsyncFallbackEngine
+internal static class AsyncFallbackEngine
 {
+    [DebuggerDisableUserUnhandledExceptions]
     internal static async Task<TResult> ImplementationAsync<TResult>(
         Func<Context, CancellationToken, Task<TResult>> action,
         Context context,
-        CancellationToken cancellationToken,
         ExceptionPredicates shouldHandleExceptionPredicates,
         ResultPredicates<TResult> shouldHandleResultPredicates,
         Func<DelegateResult<TResult>, Context, Task> onFallbackAsync,
         Func<DelegateResult<TResult>, Context, CancellationToken, Task<TResult>> fallbackAction,
-        bool continueOnCapturedContext)
+        bool continueOnCapturedContext,
+        CancellationToken cancellationToken)
     {
         DelegateResult<TResult> delegateOutcome;
 

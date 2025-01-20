@@ -1,16 +1,24 @@
-using Polly.Strategy;
-
 namespace Polly.Timeout;
 
-#pragma warning disable CA1815 // Equals not overridden because this class is just a data holder.
+#pragma warning disable CA1815 // Override equals and operator equals on value types
 
 /// <summary>
 /// Arguments used by the timeout strategy to retrieve a timeout for current execution.
 /// </summary>
-public readonly struct TimeoutGeneratorArguments : IResilienceArguments
+/// <remarks>
+/// Always use the constructor when creating this struct, otherwise we do not guarantee binary compatibility.
+/// </remarks>
+public readonly struct TimeoutGeneratorArguments
 {
-    internal TimeoutGeneratorArguments(ResilienceContext context) => Context = context;
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TimeoutGeneratorArguments"/> struct.
+    /// </summary>
+    /// <param name="context">The context associated with the execution of a user-provided callback.</param>
+    public TimeoutGeneratorArguments(ResilienceContext context) => Context = context;
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// Gets the context associated with the execution of a user-provided callback.
+    /// </summary>
     public ResilienceContext Context { get; }
 }
+

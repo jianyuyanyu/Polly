@@ -6,13 +6,15 @@ namespace Polly.Caching;
 /// </summary>
 public abstract class NonSlidingTtl : ITtlStrategy
 {
+#pragma warning disable IDE1006
     /// <summary>
     /// The absolute expiration time for cache items, represented by this strategy.
     /// </summary>
     protected readonly DateTimeOffset absoluteExpirationTime;
+#pragma warning restore IDE1006
 
     /// <summary>
-    /// Constructs a new instance of the <see cref="NonSlidingTtl"/> strategy.
+    /// Initializes a new instance of the <see cref="NonSlidingTtl"/> class.
     /// </summary>
     /// <param name="absoluteExpirationTime">The absolute expiration time for cache items, represented by this strategy.</param>
     protected NonSlidingTtl(DateTimeOffset absoluteExpirationTime) =>

@@ -3,18 +3,19 @@ namespace Polly.Caching;
 
 internal static class CacheEngine
 {
+    [DebuggerDisableUserUnhandledExceptions]
     internal static TResult Implementation<TResult>(
         ISyncCacheProvider<TResult> cacheProvider,
         ITtlStrategy<TResult> ttlStrategy,
         Func<Context, string> cacheKeyStrategy,
         Func<Context, CancellationToken, TResult> action,
         Context context,
-        CancellationToken cancellationToken,
         Action<Context, string> onCacheGet,
         Action<Context, string> onCacheMiss,
         Action<Context, string> onCachePut,
         Action<Context, string, Exception>? onCacheGetError,
-        Action<Context, string, Exception>? onCachePutError)
+        Action<Context, string, Exception>? onCachePutError,
+        CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -36,6 +37,7 @@ internal static class CacheEngine
             valueFromCache = default;
             onCacheGetError?.Invoke(context, cacheKey, ex);
         }
+
         if (cacheHit)
         {
             onCacheGet(context, cacheKey);

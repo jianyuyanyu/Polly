@@ -2,14 +2,14 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Polly;
 
-#pragma warning disable CA1710 // Identifiers should have correct suffix
-
 /// <summary>
 /// Represents a collection of custom resilience properties.
 /// </summary>
-public sealed class ResilienceProperties : IDictionary<string, object?>
+[DebuggerDisplay("{Options}")]
+public sealed class ResilienceProperties
 {
-    private Dictionary<string, object?> Options { get; } = new();
+    [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
+    internal IDictionary<string, object?> Options { get; set; } = new Dictionary<string, object?>();
 
     /// <summary>
     /// Gets the value of a given property.
@@ -20,10 +20,24 @@ public sealed class ResilienceProperties : IDictionary<string, object?>
     /// <returns>True, if a property was retrieved.</returns>
     public bool TryGetValue<TValue>(ResiliencePropertyKey<TValue> key, [MaybeNullWhen(false)] out TValue value)
     {
-        if (Options.TryGetValue(key.Key, out object? val) && val is TValue typedValue)
+        if (Options.TryGetValue(key.Key, out object? val))
         {
-            value = typedValue;
-            return true;
+            if (val is TValue typedValue)
+            {
+                value = typedValue;
+                return true;
+            }
+            else if (val is null)
+            {
+                // We have to use null-forgiving operator "!" here to suppress a null-state analysis warning.
+                // The reason is the following. The output type "TValue" doesn't have any type constraints as
+                // "notnull", "class" or "struct", therefore the analyzer considers "TValue" as non-nullable
+                // and warns us that we're assigning "null" to it. But that's not correct, because "TValue"
+                // could be a nullable type, e.g. "string?", and assigning "null" to it is correct. Therefore
+                // it is reasonable to use "!" here to suppress the warning.
+                value = default!;
+                return true;
+            }
         }
 
         value = default;
@@ -53,62 +67,25 @@ public sealed class ResilienceProperties : IDictionary<string, object?>
     /// <param name="key">Strongly typed key to get the value of the property.</param>
     /// <param name="value">Returns the value of the property.</param>
     /// <typeparam name="TValue">The type of property value as defined by <paramref name="key"/> parameter.</typeparam>
-    public void Set<TValue>(ResiliencePropertyKey<TValue> key, TValue value)
+    public void Set<TValue>(ResiliencePropertyKey<TValue> key, TValue value) => Options[key.Key] = value;
+
+    internal void AddOrReplaceProperties(ResilienceProperties other)
     {
-        Options[key.Key] = value;
+        // try to avoid enumerator allocation
+        if (other.Options is Dictionary<string, object?> otherOptions)
+        {
+            foreach (var pair in otherOptions)
+            {
+                Options[pair.Key] = pair.Value;
+            }
+        }
+        else
+        {
+            foreach (var pair in other.Options)
+            {
+                Options[pair.Key] = pair.Value;
+            }
+        }
     }
-
-    /// <inheritdoc/>
-    object? IDictionary<string, object?>.this[string key]
-    {
-        get => Options[key];
-        set => Options[key] = value;
-    }
-
-    /// <inheritdoc/>
-    ICollection<string> IDictionary<string, object?>.Keys => Options.Keys;
-
-    /// <inheritdoc/>
-    ICollection<object?> IDictionary<string, object?>.Values => Options.Values;
-
-    /// <inheritdoc/>
-    int ICollection<KeyValuePair<string, object?>>.Count => Options.Count;
-
-    /// <inheritdoc/>
-    bool ICollection<KeyValuePair<string, object?>>.IsReadOnly => ((IDictionary<string, object?>)Options).IsReadOnly;
-
-    /// <inheritdoc/>
-    void IDictionary<string, object?>.Add(string key, object? value) => Options.Add(key, value);
-
-    /// <inheritdoc/>
-    void ICollection<KeyValuePair<string, object?>>.Add(KeyValuePair<string, object?> item) => ((IDictionary<string, object?>)Options).Add(item);
-
-    /// <inheritdoc/>
-    void ICollection<KeyValuePair<string, object?>>.Clear() => Options.Clear();
-
-    /// <inheritdoc/>
-    bool ICollection<KeyValuePair<string, object?>>.Contains(KeyValuePair<string, object?> item) => ((IDictionary<string, object?>)Options).Contains(item);
-
-    /// <inheritdoc/>
-    bool IDictionary<string, object?>.ContainsKey(string key) => Options.ContainsKey(key);
-
-    /// <inheritdoc/>
-    void ICollection<KeyValuePair<string, object?>>.CopyTo(KeyValuePair<string, object?>[] array, int arrayIndex) =>
-        ((IDictionary<string, object?>)Options).CopyTo(array, arrayIndex);
-
-    /// <inheritdoc/>
-    IEnumerator<KeyValuePair<string, object?>> IEnumerable<KeyValuePair<string, object?>>.GetEnumerator() => Options.GetEnumerator();
-
-    /// <inheritdoc/>
-    IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable)Options).GetEnumerator();
-
-    /// <inheritdoc/>
-    bool IDictionary<string, object?>.Remove(string key) => Options.Remove(key);
-
-    /// <inheritdoc/>
-    bool ICollection<KeyValuePair<string, object?>>.Remove(KeyValuePair<string, object?> item) => ((IDictionary<string, object?>)Options).Remove(item);
-
-    /// <inheritdoc/>
-    bool IDictionary<string, object?>.TryGetValue(string key, out object? value) => Options.TryGetValue(key, out value);
 }
 

@@ -1,21 +1,19 @@
-using System;
-using System.Threading.Tasks;
 using Polly.Telemetry;
 
 namespace Polly.Timeout;
 
 internal sealed class TimeoutResilienceStrategy : ResilienceStrategy
 {
-    private readonly TimeProvider _timeProvider;
-    private readonly ResilienceTelemetry _telemetry;
+    private readonly ResilienceStrategyTelemetry _telemetry;
+    private readonly CancellationTokenSourcePool _cancellationTokenSourcePool;
 
-    public TimeoutResilienceStrategy(TimeoutStrategyOptions options, TimeProvider timeProvider, ResilienceTelemetry telemetry)
+    public TimeoutResilienceStrategy(TimeoutStrategyOptions options, TimeProvider timeProvider, ResilienceStrategyTelemetry telemetry)
     {
         DefaultTimeout = options.Timeout;
-        TimeoutGenerator = options.TimeoutGenerator.CreateHandler();
-        OnTimeout = options.OnTimeout.CreateHandler();
-        _timeProvider = timeProvider;
+        TimeoutGenerator = options.TimeoutGenerator;
+        OnTimeout = options.OnTimeout;
         _telemetry = telemetry;
+        _cancellationTokenSourcePool = CancellationTokenSourcePool.Create(timeProvider);
     }
 
     public TimeSpan DefaultTimeout { get; }
@@ -24,9 +22,16 @@ internal sealed class TimeoutResilienceStrategy : ResilienceStrategy
 
     public Func<OnTimeoutArguments, ValueTask>? OnTimeout { get; }
 
-    protected internal override async ValueTask<TResult> ExecuteCoreAsync<TResult, TState>(Func<ResilienceContext, TState, ValueTask<TResult>> callback, ResilienceContext context, TState state)
+    protected internal override async ValueTask<Outcome<TResult>> ExecuteCore<TResult, TState>(
+        Func<ResilienceContext, TState, ValueTask<Outcome<TResult>>> callback,
+        ResilienceContext context,
+        TState state)
     {
-        var timeout = await GetTimeoutAsync(context).ConfigureAwait(context.ContinueOnCapturedContext);
+        var timeout = DefaultTimeout;
+        if (TimeoutGenerator is not null)
+        {
+            timeout = await TimeoutGenerator!(new TimeoutGeneratorArguments(context)).ConfigureAwait(context.ContinueOnCapturedContext);
+        }
 
         if (!TimeoutUtil.ShouldApplyTimeout(timeout))
         {
@@ -35,72 +40,52 @@ internal sealed class TimeoutResilienceStrategy : ResilienceStrategy
         }
 
         var previousToken = context.CancellationToken;
-        using var cancellationSource = new CancellationTokenSource();
-        _timeProvider.CancelAfter(cancellationSource, timeout);
+        var cancellationSource = _cancellationTokenSourcePool.Get(timeout);
         context.CancellationToken = cancellationSource.Token;
 
-        CancellationTokenRegistration? registration = null;
+        var registration = CreateRegistration(cancellationSource, previousToken);
 
-        if (previousToken.CanBeCanceled)
+        var outcome = await StrategyHelper.ExecuteCallbackSafeAsync(callback, context, state).ConfigureAwait(context.ContinueOnCapturedContext);
+        var isCancellationRequested = cancellationSource.IsCancellationRequested;
+
+        // execution is finished, clean up
+        context.CancellationToken = previousToken;
+#pragma warning disable CA1849 // Call async methods when in an async method, OK here as the callback is synchronous
+#pragma warning disable S6966
+        registration.Dispose();
+#pragma warning restore S6966
+#pragma warning restore CA1849 // Call async methods when in an async method
+
+        _cancellationTokenSourcePool.Return(cancellationSource);
+
+        // check the outcome
+        if (isCancellationRequested && outcome.Exception is OperationCanceledException e && !previousToken.IsCancellationRequested)
         {
-            registration = previousToken.Register(static state => ((CancellationTokenSource)state!).Cancel(), cancellationSource, useSynchronizationContext: false);
-        }
+            var args = new OnTimeoutArguments(context, timeout);
+            _telemetry.Report(new(ResilienceEventSeverity.Error, TimeoutConstants.OnTimeoutEvent), context, args);
 
-        try
-        {
-            var result = await callback(context, state).ConfigureAwait(context.ContinueOnCapturedContext);
-
-            await DisposeRegistration(registration).ConfigureAwait(context.ContinueOnCapturedContext);
-
-            return result;
-        }
-        catch (OperationCanceledException e) when (cancellationSource.IsCancellationRequested && !previousToken.IsCancellationRequested)
-        {
-            _telemetry.Report(TimeoutConstants.OnTimeoutEvent, context);
-
-            if (OnTimeout != null)
+            if (OnTimeout is not null)
             {
-                await OnTimeout(new OnTimeoutArguments(context, e, timeout)).ConfigureAwait(context.ContinueOnCapturedContext);
+                await OnTimeout(args).ConfigureAwait(context.ContinueOnCapturedContext);
             }
 
-            await DisposeRegistration(registration).ConfigureAwait(context.ContinueOnCapturedContext);
-
-            throw new TimeoutRejectedException(
+            var timeoutException = new TimeoutRejectedException(
                 $"The operation didn't complete within the allowed timeout of '{timeout}'.",
                 timeout,
                 e);
+
+            _telemetry.SetTelemetrySource(timeoutException);
+            return Outcome.FromException<TResult>(timeoutException.TrySetStackTrace());
         }
-        finally
-        {
-            context.CancellationToken = previousToken;
-        }
+
+        return outcome;
     }
 
-    internal async Task<TimeSpan> GetTimeoutAsync(ResilienceContext context)
+    private static CancellationTokenRegistration CreateRegistration(CancellationTokenSource cancellationSource, CancellationToken previousToken)
     {
-        if (TimeoutGenerator == null)
+        if (previousToken.CanBeCanceled)
         {
-            return DefaultTimeout;
-        }
-
-        var timeout = await TimeoutGenerator(new TimeoutGeneratorArguments(context)).ConfigureAwait(context.ContinueOnCapturedContext);
-        if (TimeoutUtil.IsTimeoutValid(timeout))
-        {
-            return timeout;
-        }
-
-        return DefaultTimeout;
-    }
-
-    private static ValueTask DisposeRegistration(CancellationTokenRegistration? registration)
-    {
-        if (registration.HasValue)
-        {
-#if NETCOREAPP
-            return registration.Value.DisposeAsync();
-#else
-            registration.Value.Dispose();
-#endif
+            return previousToken.Register(static state => ((CancellationTokenSource)state!).Cancel(), cancellationSource, useSynchronizationContext: false);
         }
 
         return default;

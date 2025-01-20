@@ -21,12 +21,13 @@ Performs a dry run of the build script.
 No tasks will be executed.
 
 .LINK
-http://cakebuild.net
+https://cakebuild.net
 #>
 
 Param(
     [string]$Script = "build.cake",
     [string]$Target = "Default",
+    [ValidateSet("Default", "MutationCore", "MutationLegacy")]
     [string]$Configuration = "Release",
     [ValidateSet("Quiet", "Minimal", "Normal", "Verbose", "Diagnostic")]
     [string]$Verbosity = "Verbose",
