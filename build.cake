@@ -18,7 +18,7 @@ var configuration = Argument<string>("configuration", "Release");
 
 var projectName = "Polly";
 
-var solutions = GetFiles("./**/*.sln");
+var solutions = GetFiles("./**/*.slnx");
 var solutionPaths = solutions.Select(solution => solution.GetDirectory());
 
 var srcDir = Directory("./src");
@@ -141,7 +141,11 @@ Task("__RunTests")
 
     if (!string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("GITHUB_SHA")))
     {
-        loggers = ["GitHubActions;report-warnings=false"];
+        loggers =
+        [
+            "junit;LogFilePath=junit.xml",
+            "GitHubActions;report-warnings=false",
+        ];
     }
 
     var projects = GetFiles("./test/**/*.csproj");
